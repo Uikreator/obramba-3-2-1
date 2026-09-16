@@ -1,0 +1,12 @@
+{
+  "name": "Obramba 3:2:1",
+  "short_name": "Obramba 321",
+  "start_url": "./obramba-321.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08182f",
+  "theme_color": "#08182f",
+  "icons": [
+    { "src": "ikona.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
