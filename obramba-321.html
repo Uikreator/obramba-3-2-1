@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Obramba 3:2:1</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#08182f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="ikona-192.png">
+<style>
+  :root{
+    --igra:#1f6fc4; --vratarjev:#0a2a5e; --crta:#e3bf5e;
+    --dres-obramba:#f3f7fc; --dres-obramba-tekst:#0a2a5e;
+    --dres-napad:#d94f22; --zoga:#ffd23f;
+    --ozadje:#08182f; --plosca:#0f2542; --rob:#1e3f6e;
+    --besedilo:#e6eef9; --tiho:#8ba7cc; --prav:#31c07a; --narobe:#ff6b57;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{
+    background:var(--ozadje);color:var(--besedilo);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;line-height:1.4;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    user-select:none;
+  }
+  #vrh{display:flex;align-items:center;gap:10px;padding:10px 14px 4px}
+  #pike{display:flex;gap:5px}
+  #pike span{width:7px;height:7px;border-radius:50%;background:var(--rob)}
+  #pike span.done{background:var(--crta)}
+  #pike span.now{background:var(--dres-obramba);transform:scale(1.35)}
+  #izid{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:650;font-size:15px}
+  #izid b{color:var(--dres-napad)} #izid i{font-style:normal;color:var(--prav)}
+  #zvok{background:none;border:1px solid var(--rob);color:var(--tiho);border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;line-height:1}
+  #naslov{padding:0 14px;font-size:14px;color:var(--tiho)}
+  #navodilo{padding:2px 14px 6px;font-size:17px;font-weight:600;min-height:2.4em}
+  #odrsek{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 6px}
+  svg{width:100%;height:100%;touch-action:none;display:block}
+
+  .dres path{stroke:#06152b;stroke-width:.07}
+  .dres text{font:700 .58px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .dres.duh{opacity:.5}
+  .dres.premicen{cursor:grab}
+  .dres.prav path{stroke:var(--prav);stroke-width:.16}
+  .dres.narobe path{stroke:var(--narobe);stroke-width:.16}
+  #oblacek g{opacity:0;transition:opacity .25s}
+  #oblacek g.vidno{opacity:1}
+  #oblacek rect{fill:var(--crta);stroke:#06152b;stroke-width:.08}
+  #oblacek text{font:700 .6px system-ui,sans-serif;fill:#0a2a5e;text-anchor:middle;dominant-baseline:central}
+
+  #razlaga{
+    margin:0 14px 6px;display:flex;gap:10px;align-items:flex-start;
+    max-height:32vh;overflow:auto;
+  }
+  #razlaga.skrit{display:none}
+  #razlaga svg.glava{width:58px;height:58px;flex:0 0 58px;margin-top:2px}
+  #razlaga .mehur{
+    position:relative;background:var(--plosca);border:1px solid var(--rob);
+    border-radius:12px;padding:10px 13px;font-size:14.5px;color:var(--besedilo);
+  }
+  #razlaga .mehur::before{
+    content:"";position:absolute;left:-7px;top:16px;width:12px;height:12px;
+    background:var(--plosca);border-left:1px solid var(--rob);border-bottom:1px solid var(--rob);
+    transform:rotate(45deg);
+  }
+  #razlaga .kdo{display:block;font-size:12px;color:var(--crta);font-weight:650;margin-bottom:3px}
+  #kGumbi.stolpec{flex-direction:column}
+  #kGumbi.stolpec button{width:100%;text-align:left}
+  #dno{padding:6px 14px 14px;display:flex;align-items:center;gap:8px;min-height:58px}
+  button.g{background:#16345c;border:1px solid var(--rob);color:var(--besedilo);border-radius:9px;padding:11px 16px;font:inherit;font-size:15px;cursor:pointer}
+  button.g.glavni{background:var(--crta);border-color:#f0d287;color:#0a2a5e;font-weight:650}
+  button.g:disabled{opacity:.35;cursor:default}
+  button.g:active{transform:scale(.97)}
+  button.g:focus-visible,#zvok:focus-visible{outline:2px solid var(--crta);outline-offset:2px}
+  #stanje{color:var(--tiho);font-size:14px}
+  .stresi{animation:stresi .4s}
+  @keyframes stresi{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+
+  #zaslon{position:fixed;inset:0;background:rgba(8,24,47,.94);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+  #zaslon.vidno{display:flex}
+  #kartica{background:var(--plosca);border:1px solid var(--rob);border-radius:16px;padding:22px;max-width:440px;width:100%;max-height:90vh;overflow:auto}
+  #kartica h2{margin:0 0 6px;font-size:22px}
+  #kartica p{margin:0 0 16px;color:var(--tiho);font-size:16px}
+  #kartica .gumbi{display:flex;gap:8px;flex-wrap:wrap}
+  .velika{font-size:40px;font-weight:700;color:var(--crta);line-height:1;margin:6px 0 14px}
+
+  #izbor{position:fixed;inset:0;background:var(--ozadje);z-index:30;display:none;flex-direction:column;padding:16px}
+  #izbor.vidno{display:flex}
+  #izbor h2{margin:0 0 2px;font-size:21px}
+  #izbor .pod{color:var(--tiho);font-size:15px;margin:0 0 12px}
+  #seznam{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;padding-bottom:10px}
+  .ime{background:#16345c;border:1px solid var(--rob);color:var(--besedilo);border-radius:999px;padding:9px 14px;font:inherit;font-size:15px;cursor:pointer}
+  .ime.izbrana{background:var(--dres-obramba);color:var(--dres-obramba-tekst);border-color:#fff;font-weight:650}
+  .ime:disabled{opacity:.35}
+  #izborDno{display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid var(--rob)}
+  #namesti{
+    display:none;margin:0 0 12px;background:#16345c;border:1px solid var(--crta);
+    border-radius:10px;padding:11px 13px;font-size:14.5px;color:var(--besedilo);
+    align-items:center;gap:10px;
+  }
+  #namesti.vidno{display:flex}
+  #namesti button{
+    margin-left:auto;background:var(--crta);border:none;color:#0a2a5e;font:inherit;
+    font-weight:650;border-radius:8px;padding:9px 14px;cursor:pointer;white-space:nowrap;
+  }
+  #namesti span{line-height:1.35}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="izbor">
+  <h2>Izberi svojo obrambo</h2>
+  <p class="pod">Šest igralk. Na dresu bodo začetnice.</p>
+  <div id="namesti"><span id="namestiTekst"></span><button id="namestiGumb">Dodaj</button></div>
+  <div id="seznam"></div>
+  <div id="izborDno">
+    <span id="stevec">0 / 6</span>
+    <button class="g" id="pocisti">Počisti</button>
+    <button class="g glavni" id="potrdi" disabled>Naprej</button>
+  </div>
+</div>
+
+<div id="vrh">
+  <div id="pike"></div>
+  <div id="izid"></div>
+  <button id="zvok" aria-label="Zvok">♪</button>
+</div>
+<div id="naslov"></div>
+<div id="navodilo"></div>
+
+<div id="odrsek">
+  <svg id="igrisce" viewBox="-1 -1.2 22 15.4">
+    <defs>
+      <clipPath id="rob"><rect x="0" y="0" width="20" height="14.2"/></clipPath>
+      <marker id="konica" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <path d="M0,1 L9,5 L0,9 z" fill="#ffffff"/>
+      </marker>
+      <marker id="konicaZoga" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <path d="M0,1 L9,5 L0,9 z" fill="var(--zoga)"/>
+      </marker>
+      <marker id="konicaGol" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <path d="M0,1 L9,5 L0,9 z" fill="var(--narobe)"/>
+      </marker>
+    </defs>
+    <rect x="0" y="0" width="20" height="14.2" fill="var(--igra)"/>
+    <g clip-path="url(#rob)">
+      <path d="M2.5 0 A6 6 0 0 0 8.5 6 L11.5 6 A6 6 0 0 0 17.5 0 Z" fill="var(--vratarjev)"/>
+      <path d="M2.5 0 A6 6 0 0 0 8.5 6 L11.5 6 A6 6 0 0 0 17.5 0" fill="none" stroke="var(--crta)" stroke-width=".1"/>
+      <path d="M-0.5 0 A9 9 0 0 0 8.5 9 L11.5 9 A9 9 0 0 0 20.5 0" fill="none" stroke="var(--crta)" stroke-width=".09" stroke-dasharray=".55 .45"/>
+      <line x1="7" y1="4" x2="13" y2="4" stroke="var(--crta)" stroke-width=".08"/>
+      <line x1="8.5" y1="0" x2="11.5" y2="0" stroke="#06152b" stroke-width=".34"/>
+    </g>
+    <rect x="0" y="0" width="20" height="14.2" fill="none" stroke="var(--crta)" stroke-width=".12"/>
+    <g id="sledi"></g>
+    <g id="diski"></g>
+    <g id="oblacek"></g>
+  </svg>
+</div>
+
+<div id="razlaga"></div>
+<div id="dno">
+  <button class="g" id="levo">Nazaj</button>
+  <button class="g glavni" id="desno">Naprej</button>
+  <span id="stanje"></span>
+</div>
+
+<div id="zaslon" role="dialog" aria-modal="true">
+  <div id="kartica">
+    <h2 id="kNaslov"></h2>
+    <div id="kVelika" class="velika" hidden></div>
+    <p id="kBesedilo"></p>
+    <div class="gumbi" id="kGumbi"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var PODATKI = {"razlicica":2,"toleranca":1.6,"tolerancaNapad":1.6,"faze":[{"ime":"Osnovna postavitev · pivot desno","navodilo":"Postavi obrambo v osnovno postavitev 3:2:1.","zakaj":"Tri igralke na 6-metrski črti, dve na 9-metrski črti, ena na špici. Vsaka pazi na svojo napadalko v obrambni preži in je hkrati pripravljena pomagati sosedi. Roke držimo v višini ramen, da napadalka vidi, da ni prostora za strel ali podajo.","poz":{"O1":{"x":3,"y":3.5},"O2":{"x":4.3,"y":7.7},"O3":{"x":10.2,"y":10.6},"O4":{"x":11.4,"y":7.2},"O5":{"x":16.2,"y":8},"O6":{"x":17,"y":3.6},"LK":{"x":0.8,"y":0.8},"LZ":{"x":0.8,"y":10.6},"SZ":{"x":9.9,"y":13.4},"DZ":{"x":19.3,"y":10.7},"DK":{"x":19.3,"y":0.7},"PIV":{"x":12.1,"y":6.4},"ZOGA":{"x":10.8,"y":13}},"klic":"Moj pivot!","skupina":"A"},{"ime":"Žoga pri levem krilu · pivot desno","navodilo":"Žoga je pri levem krilu. Postavi obrambo.","zakaj":"Prva obrambna igralka napade levo krilo in poskuša preprečiti podajo ali strel oziroma napraviti prekršek.","poz":{"O1":{"x":2.1,"y":2.9},"O2":{"x":2.9,"y":6.2},"O3":{"x":8.9,"y":10.4},"O4":{"x":6.9,"y":6.2},"O5":{"x":12.1,"y":7.4},"O6":{"x":16.7,"y":3.8},"LK":{"x":0.7,"y":2.3},"LZ":{"x":0.8,"y":10.6},"SZ":{"x":9.9,"y":13.4},"DZ":{"x":19.3,"y":10.7},"DK":{"x":19.3,"y":0.7},"PIV":{"x":12.1,"y":6.4},"ZOGA":{"x":1.2,"y":3.5}},"klic":"Prevzemam, moj pivot!","skupina":"A"},{"ime":"Žoga pri levem zunanjem · pivot desno","navodilo":"Žoga je pri levem zunanjem. Postavi obrambo.","zakaj":"Branilka na 2. liniji mora preprečiti troje: strel, prodor in podajo pivotu. Osrednja branilka – igralka, ki je pokrivala pivota – se pomakne na drugo stran v pomoč branilki na 2. liniji, na svojo prejšnjo pozicijo pa pokliče \"Olga, pivot!\" branilko na 2. liniji z druge strani, ki prevzame pivota.","poz":{"O1":{"x":3,"y":3.7},"O2":{"x":3.4,"y":7.6},"O3":{"x":9.3,"y":10.4},"O4":{"x":6.4,"y":6.5},"O5":{"x":12.4,"y":7.5},"O6":{"x":17,"y":5.7},"LK":{"x":0.8,"y":0.8},"LZ":{"x":2.5,"y":8.7},"SZ":{"x":9.9,"y":13.4},"DZ":{"x":19.3,"y":10.7},"DK":{"x":19.3,"y":0.7},"PIV":{"x":12.1,"y":6.4},"ZOGA":{"x":3.7,"y":8.9}},"klic":"Moj pivot!","skupina":"A"},{"ime":"Žoga pri srednjem zunanjem · pivot desno","navodilo":"Žoga je pri srednjem zunanjem. Postavi obrambo.","zakaj":"Osrednja branilka se pomakne proti pivotu. Špica pokrije srednjo napadalko in ji zapre strel, prodor in podajo pivotu. Kadar ima žogo srednja, branilke na 2. liniji ne smejo prestrezati žoge — če spodleti, je obramba odprta. Krili se pomakneta proti sredini, branilki na 2. liniji pa diagonalno navznoter.","poz":{"O1":{"x":3.2,"y":3.9},"O2":{"x":4.2,"y":8.2},"O3":{"x":10,"y":11},"O4":{"x":10.7,"y":6.7},"O5":{"x":13.5,"y":7.8},"O6":{"x":16.8,"y":5.1},"LK":{"x":0.8,"y":0.8},"LZ":{"x":0.8,"y":10.6},"SZ":{"x":9.9,"y":12.3},"DZ":{"x":19.3,"y":10.7},"DK":{"x":19.3,"y":0.7},"PIV":{"x":12.1,"y":6.4},"ZOGA":{"x":10.8,"y":11.6}},"klic":"Moj pivot!","skupina":"A"},{"ime":"Žoga pri desnem zunanjem · pivot desno","navodilo":"Žoga je pri desnem zunanjem. Postavi obrambo.","zakaj":"Osrednja branilka prevzame pivota z vzklikom \"Moj pivot!\". Branilka na 2. liniji izstopi na igralko z žogo. Nasprotna branilka na 2. liniji se pomakne proti sredini in 6-metrski črti.","poz":{"O1":{"x":3.4,"y":4},"O2":{"x":5.6,"y":7.7},"O3":{"x":10.4,"y":10.9},"O4":{"x":12,"y":7.6},"O5":{"x":16.4,"y":7.7},"O6":{"x":17.7,"y":3.9},"LK":{"x":0.8,"y":0.8},"LZ":{"x":0.8,"y":10.6},"SZ":{"x":9.9,"y":13.4},"DZ":{"x":17.5,"y":8.8},"DK":{"x":19.3,"y":0.7},"PIV":{"x":12.1,"y":6.4},"ZOGA":{"x":16.3,"y":8.7}},"klic":"Prevzemam, moj pivot!","skupina":"A"},{"ime":"Žoga pri desnem krilu · pivot desno","navodilo":"Žoga je pri desnem krilu. Postavi obrambo.","zakaj":"Zunanja pokrije krilo z notranje strani, ostale pa se stisnejo proti žogi. Branilka, ki pokriva pivota, je ves čas med pivotom in žogo — podaja pivotu je v tej poziciji za nas najnevarnejša.","poz":{"O1":{"x":2.9,"y":4.2},"O2":{"x":5.6,"y":7.2},"O3":{"x":10.3,"y":10.8},"O4":{"x":12.9,"y":7},"O5":{"x":17.7,"y":6.8},"O6":{"x":18.4,"y":3.1},"LK":{"x":0.8,"y":0.8},"LZ":{"x":0.7,"y":10.9},"SZ":{"x":9.9,"y":13.4},"DZ":{"x":19.3,"y":10.7},"DK":{"x":19.6,"y":2.6},"PIV":{"x":12.1,"y":6.4},"ZOGA":{"x":19.3,"y":3.7}},"klic":"Moj pivot, držite zunaj!","skupina":"A"},{"ime":"Osnovna postavitev · pivot levo","navodilo":"Postavi obrambo v osnovno postavitev 3:2:1.","zakaj":"Tri igralke na 6-metrski črti, dve na 9-metrski črti, ena na špici. Vsaka pazi na svojo napadalko v obrambni preži in je hkrati pripravljena pomagati sosedi. Roke držimo v višini ramen, da napadalka vidi, da ni prostora za strel ali podajo.","skupina":"B","poz":{"O6":{"x":17,"y":3.5},"O5":{"x":15.9,"y":7.5},"O3":{"x":10.1,"y":10.7},"O4":{"x":8.6,"y":7.2},"O2":{"x":3.7,"y":7.9},"O1":{"x":3,"y":3.6},"DK":{"x":19.2,"y":0.8},"DZ":{"x":19.2,"y":10.6},"SZ":{"x":10.1,"y":13.4},"LZ":{"x":0.7,"y":10.7},"LK":{"x":0.7,"y":0.7},"PIV":{"x":7.9,"y":6.4},"ZOGA":{"x":11.1,"y":12.7}}},{"ime":"Žoga pri levem krilu · pivot levo","navodilo":"Žoga je pri levem krilu. Postavi obrambo.","zakaj":"Zunanja pokrije krilo z notranje strani, ostale pa se stisnejo proti žogi. Branilka, ki pokriva pivota, je ves čas med pivotom in žogo — podaja pivotu je v tej poziciji za nas najnevarnejša.","skupina":"B","poz":{"O6":{"x":16.7,"y":4.5},"O5":{"x":13.1,"y":7.2},"O3":{"x":9.4,"y":10.6},"O4":{"x":7,"y":6.6},"O2":{"x":2.8,"y":6.6},"O1":{"x":2,"y":2.8},"DK":{"x":19.2,"y":0.8},"DZ":{"x":19.2,"y":10.6},"SZ":{"x":10.1,"y":13.4},"LZ":{"x":0.7,"y":10.7},"LK":{"x":0.6,"y":1.9},"PIV":{"x":7.9,"y":6.4},"ZOGA":{"x":1.1,"y":3}}},{"ime":"Žoga pri levem zunanjem · pivot levo","navodilo":"Žoga je pri levem zunanjem. Postavi obrambo.","zakaj":"Osrednja branilka prevzame pivota z vzklikom \"Moj pivot!\". Branilka na 2. liniji izstopi na igralko z žogo. Nasprotna branilka na 2. liniji se pomakne proti sredini in 6-metrski črti.","skupina":"B","poz":{"O6":{"x":16.6,"y":5.6},"O5":{"x":12.5,"y":7.4},"O3":{"x":9.3,"y":10.3},"O4":{"x":7,"y":7.1},"O2":{"x":3.4,"y":7.9},"O1":{"x":2.3,"y":3.9},"DK":{"x":19.2,"y":0.8},"DZ":{"x":19.2,"y":10.6},"SZ":{"x":10.1,"y":13.4},"LZ":{"x":2.5,"y":8.7},"LK":{"x":0.7,"y":0.7},"PIV":{"x":7.9,"y":6.4},"ZOGA":{"x":3.6,"y":8.8}}},{"ime":"Žoga pri srednjem zunanjem · pivot levo","navodilo":"Žoga je pri srednjem zunanjem. Postavi obrambo.","zakaj":"Osrednja branilka se pomakne proti pivotu. Špica pokrije srednjo napadalko in ji zapre strel, prodor in podajo pivotu. Kadar ima žogo srednja, branilke na 2. liniji ne smejo prestrezati žoge — če spodleti, je obramba odprta. Krili se pomakneta proti sredini, branilki na 2. liniji pa diagonalno navznoter.","skupina":"B","poz":{"O6":{"x":17,"y":3.7},"O5":{"x":16.1,"y":8.2},"O3":{"x":9.9,"y":10.8},"O4":{"x":9,"y":7},"O2":{"x":6.2,"y":8.2},"O1":{"x":3.2,"y":5.1},"DK":{"x":19.2,"y":0.8},"DZ":{"x":19.2,"y":10.6},"SZ":{"x":9.9,"y":12.2},"LZ":{"x":0.7,"y":10.7},"LK":{"x":0.7,"y":0.7},"PIV":{"x":7.9,"y":6.4},"ZOGA":{"x":10.7,"y":11.7}}},{"ime":"Žoga pri desnem zunanjem · pivot levo","navodilo":"Žoga je pri desnem zunanjem. Postavi obrambo.","zakaj":"Branilka na 2. liniji mora preprečiti troje: strel, prodor in podajo pivotu. Osrednja branilka – igralka, ki je pokrivala pivota – se pomakne na drugo stran v pomoč branilki na 2. liniji, na svojo prejšnjo pozicijo pa pokliče \"Olga, pivot!\" branilko na 2. liniji z druge strani, ki prevzame pivota.","skupina":"B","poz":{"O6":{"x":17,"y":3.7},"O5":{"x":17,"y":7.7},"O3":{"x":10.7,"y":10.4},"O4":{"x":13.6,"y":6.5},"O2":{"x":7.9,"y":7.3},"O1":{"x":3.3,"y":6},"DK":{"x":19.2,"y":0.8},"DZ":{"x":17.9,"y":8.7},"SZ":{"x":10.1,"y":13.4},"LZ":{"x":0.7,"y":10.7},"LK":{"x":0.7,"y":0.7},"PIV":{"x":7.9,"y":6.4},"ZOGA":{"x":16.9,"y":8.8}}},{"ime":"Žoga pri desnem krilu · pivot levo","navodilo":"Žoga je pri desnem krilu. Postavi obrambo.","zakaj":"Prva obrambna igralka napade levo krilo in poskuša preprečiti podajo ali strel oziroma napraviti prekršek.","skupina":"B","poz":{"O6":{"x":17.8,"y":3.1},"O5":{"x":17.2,"y":6.2},"O3":{"x":11.1,"y":10.1},"O4":{"x":13.7,"y":6.4},"O2":{"x":7.9,"y":7.4},"O1":{"x":3.4,"y":4.5},"DK":{"x":19,"y":2.7},"DZ":{"x":19.2,"y":10.6},"SZ":{"x":10.1,"y":13.4},"LZ":{"x":0.7,"y":10.7},"LK":{"x":0.7,"y":0.7},"PIV":{"x":7.9,"y":6.4},"ZOGA":{"x":19,"y":3.9}}}]};
+
+var OBRAMBA = ["O1","O2","O3","O4","O5","O6"];
+var NAPAD = ["LK","LZ","SZ","DZ","DK","PIV"];
+var STEVILKE = {LK:"17", LZ:"11", SZ:"18", DZ:"38", DK:"97", PIV:"6"};
+var DISKI = ["D0","D1","D2","D3","D4","D5"];
+var VRATA = {x:10, y:.4};
+
+var IGRALKE = [
+  ["Ada","A.V."],["Aina","A.N."],["Brina","B.K."],["Donatela","D.R."],["Ela","E.S."],
+  ["Elinna","E.O."],["Ella","E.V."],["Ema","E.T."],["Eta","E.M."],["Hana","H.H."],
+  ["Julija","J.J."],["Lana","L.K."],["Lara","L.K."],["Mila","M.Č."],["Neža","N.J."],
+  ["Nika K","N.K."],["Nika P","N.P."],["Pia","P.O."],["Ria","R.Ž."],["Saša","S.J."],
+  ["Sara","S.M."],["Taja B","T.B."],["Taja P","T.P."],["Tina","T.T."],["Trina","T.K."],
+  ["Vanja","V.P."],["Vesna","V.M."],["Zala","Z.Š."],["Zoja","Z.N."]
+];
+
+var DRES = "M-.42-1C-.25-.72.25-.72.42-1L.95-.62.68-.05.5-.18.5 1-.5 1-.5-.18-.68-.05-.95-.62Z";
+var MERILO = 1.24;
+
+/* ============ stanje ============ */
+
+var ekipa = [];
+var nacin = "teorija";     // teorija | igra
+var faza = 0;              // v teoriji: slajd; v igri: faza kroga
+var krogi = [], krog = 0, slajdIdx = 0;
+var golNapad = 0, golObramba = 0;
+var delo = {}, ocena = {};
+var vlecem = null, vAnimaciji = false, oddano = false;
+var zvokVklop = true;
+
+var svg = document.getElementById("igrisce");
+var gDiski = document.getElementById("diski");
+var gSledi = document.getElementById("sledi");
+var gOblacek = document.getElementById("oblacek");
+var elRazlaga = document.getElementById("razlaga");
+var elLevo = document.getElementById("levo");
+var elDesno = document.getElementById("desno");
+
+function P(i){ return PODATKI.faze[i].poz; }
+function prejsnja(i){
+  if(i <= 0) return null;
+  return PODATKI.faze[i].skupina === PODATKI.faze[i-1].skupina ? i-1 : null;
+}
+function skupinaA(){
+  return PODATKI.faze.map(function(f,i){ return i; }).filter(function(i){ return PODATKI.faze[i].skupina === "A"; });
+}
+function tol(){ return PODATKI.toleranca || 1.2; }
+function ime(k){ var i = DISKI.indexOf(k); return IGRALKE[ekipa[i]] ? IGRALKE[ekipa[i]][0] : ""; }
+function kratica(k){ var i = DISKI.indexOf(k); return IGRALKE[ekipa[i]] ? IGRALKE[ekipa[i]][1] : ""; }
+
+/* ============ zvok ============ */
+
+var ac = null;
+function pisk(f, t, d){
+  if(!zvokVklop) return;
+  try{
+    if(!ac) ac = new (window.AudioContext||window.webkitAudioContext)();
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = t || "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(.0001, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.18, ac.currentTime + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + (d||.18));
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + (d||.18) + .02);
+  }catch(e){}
+}
+function zvokPrav(){ pisk(880,"triangle",.12); setTimeout(function(){ pisk(1320,"triangle",.16); },90); }
+function zvokGol(){ pisk(200,"square",.22); setTimeout(function(){ pisk(140,"square",.3); },180); }
+function zvokKonec(){ [523,659,784,1047].forEach(function(f,i){ setTimeout(function(){ pisk(f,"triangle",.18); }, i*110); }); }
+function trese(v){ try{ navigator.vibrate && navigator.vibrate(v); }catch(e){} }
+
+document.getElementById("zvok").addEventListener("click", function(){
+  zvokVklop = !zvokVklop;
+  this.textContent = zvokVklop ? "♪" : "✕";
+  this.style.color = zvokVklop ? "var(--tiho)" : "var(--narobe)";
+});
+
+/* ============ dnevna omejitev ============ */
+
+var NA_DAN = 3;
+var KLJUC_IGRE = "obramba321.igre";
+var vSeji = 0;              // rezerva, če shramba ne dela
+var shramba = (function(){
+  try{
+    localStorage.setItem("obramba321.test","1");
+    localStorage.removeItem("obramba321.test");
+    return localStorage;
+  }catch(e){
+    try{
+      sessionStorage.setItem("obramba321.test","1");
+      sessionStorage.removeItem("obramba321.test");
+      return sessionStorage;
+    }catch(e2){ return null; }
+  }
+})();
+var omejitevDela = shramba !== null;
+
+// igralni dan se začne ob 5:00
+function igralniDan(){
+  var d = new Date();
+  if(d.getHours() < 5) d.setDate(d.getDate() - 1);
+  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+function stanjeIger(){
+  if(!shramba) return {dan: igralniDan(), n: vSeji};
+  try{
+    var t = shramba.getItem(KLJUC_IGRE);
+    if(!t) return {dan: igralniDan(), n: 0};
+    var o = JSON.parse(t);
+    if(!o || o.dan !== igralniDan()) return {dan: igralniDan(), n: 0};
+    return {dan: o.dan, n: o.n || 0};
+  }catch(e){ return {dan: igralniDan(), n: vSeji}; }
+}
+function porabiIgro(){
+  var o = stanjeIger();
+  o.n++;
+  vSeji = o.n;
+  if(shramba){
+    try{ shramba.setItem(KLJUC_IGRE, JSON.stringify(o)); }
+    catch(e){ omejitevDela = false; }
+  }
+  return o.n;
+}
+function preostaleIgre(){ return Math.max(0, NA_DAN - stanjeIger().n); }
+function doNaslednje(){
+  var d = new Date(), c = new Date();
+  c.setHours(5,0,0,0);
+  if(d.getHours() >= 5) c.setDate(c.getDate() + 1);
+  var min = Math.round((c - d) / 60000);
+  var ur = Math.floor(min / 60);
+  return ur > 0 ? (ur + " ur " + (min % 60) + " minut") : (min + " minut");
+}
+function besediloIger(){
+  var ost = preostaleIgre();
+  if(!omejitevDela) return "Na tej napravi omejitev ne deluje.";
+  return ost === 1 ? "Danes ti ostane še ena igra."
+       : ost === 0 ? "Danes ni več iger."
+       : "Danes ti ostanejo še " + ost + " igre.";
+}
+
+/* ============ izbor ============ */
+
+var elSeznam = document.getElementById("seznam");
+var elIzbor = document.getElementById("izbor");
+function narisiSeznam(){
+  elSeznam.textContent = "";
+  IGRALKE.forEach(function(ig, i){
+    var b = document.createElement("button");
+    b.className = "ime"; b.textContent = ig[0]; b.dataset.i = i;
+    b.addEventListener("click", function(){
+      var m = ekipa.indexOf(i);
+      if(m >= 0) ekipa.splice(m,1); else if(ekipa.length < 6) ekipa.push(i);
+      osveziSeznam();
+    });
+    elSeznam.appendChild(b);
+  });
+  osveziSeznam();
+}
+function osveziSeznam(){
+  Array.prototype.forEach.call(elSeznam.children, function(b){
+    var i = parseInt(b.dataset.i,10), izb = ekipa.indexOf(i) >= 0;
+    b.classList.toggle("izbrana", izb);
+    b.disabled = !izb && ekipa.length >= 6;
+  });
+  document.getElementById("stevec").textContent = ekipa.length + " / 6";
+  document.getElementById("potrdi").disabled = ekipa.length !== 6;
+}
+document.getElementById("pocisti").addEventListener("click", function(){ ekipa = []; osveziSeznam(); });
+document.getElementById("potrdi").addEventListener("click", function(){
+  elIzbor.classList.remove("vidno");
+  zacniTeorijo();
+});
+
+/* ============ risanje ============ */
+
+function dres(id, t, barva, tekst, barvaTeksta, razredi){
+  var g = document.createElementNS("http://www.w3.org/2000/svg","g");
+  g.setAttribute("class","dres " + (razredi||""));
+  g.setAttribute("transform","translate("+t.x+","+t.y+") scale("+MERILO+")");
+  g.dataset.id = id;
+  var p = document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d", DRES); p.setAttribute("fill", barva);
+  g.appendChild(p);
+  if(tekst){
+    var tx = document.createElementNS("http://www.w3.org/2000/svg","text");
+    tx.setAttribute("y",".35"); tx.setAttribute("fill", barvaTeksta);
+    tx.setAttribute("font-size", tekst.length > 3 ? ".5" : ".62");
+    tx.textContent = tekst;
+    g.appendChild(tx);
+  }
+  gDiski.appendChild(g);
+  return g;
+}
+function zoga(t){
+  var g = document.createElementNS("http://www.w3.org/2000/svg","g");
+  g.setAttribute("class","dres"); g.dataset.id = "ZOGA";
+  g.setAttribute("transform","translate("+t.x+","+t.y+")");
+  var c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("r",".45"); c.setAttribute("fill","var(--zoga)");
+  c.setAttribute("stroke","#06152b"); c.setAttribute("stroke-width",".09");
+  g.appendChild(c); gDiski.appendChild(g);
+  return g;
+}
+
+function narisi(){
+  gDiski.textContent = "";
+  var p = P(faza);
+  NAPAD.forEach(function(a){ dres(a, p[a], "var(--dres-napad)", STEVILKE[a], "#fff", ""); });
+  zoga(p.ZOGA);
+  DISKI.forEach(function(k,i){
+    var razredi = "";
+    if(nacin === "igra"){
+      razredi = oddano ? (ocena[k] ? "prav" : "narobe") : "premicen duh";
+    }
+    dres(k, delo[k], "var(--dres-obramba)", kratica(k), "var(--dres-obramba-tekst)", razredi);
+  });
+}
+
+function puscica(a, b, barva, konica, crtkano, debelina, odmik){
+  // skrajšamo na obeh koncih, da konica ne sedi v dresu
+  var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+  if(d < .01) return;
+  var ux = dx/d, uy = dy/d, r = odmik === undefined ? .95 : odmik;
+  var x1 = a.x + ux*r, y1 = a.y + uy*r, x2 = b.x - ux*r, y2 = b.y - uy*r;
+  if(Math.hypot(x2-x1, y2-y1) < .3) return;
+  var l = document.createElementNS("http://www.w3.org/2000/svg","line");
+  l.setAttribute("x1",x1); l.setAttribute("y1",y1);
+  l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+  l.setAttribute("stroke", barva);
+  l.setAttribute("stroke-width", debelina || .16);
+  l.setAttribute("stroke-linecap","round");
+  if(crtkano) l.setAttribute("stroke-dasharray",".45 .35");
+  l.setAttribute("marker-end","url(#"+konica+")");
+  gSledi.appendChild(l);
+}
+
+function sledi(odFaza, doFaza){
+  gSledi.textContent = "";
+  if(odFaza === doFaza) return;
+  // pot žoge
+  puscica(P(odFaza).ZOGA, P(doFaza).ZOGA, "var(--zoga)", "konicaZoga", true, .18, .7);
+  // gibanje obrambe
+  OBRAMBA.forEach(function(o){
+    var a = P(odFaza)[o], b = P(doFaza)[o];
+    if(Math.hypot(a.x-b.x, a.y-b.y) < .6) return;
+    puscica(a, b, "#ffffff", "konica", false, .16);
+  });
+}
+
+/* ============ oblački ============ */
+
+function oblacek(t, besedilo, zamik, trajanje){
+  var g = document.createElementNS("http://www.w3.org/2000/svg","g");
+  var sirina = Math.max(3.4, besedilo.length * .38), visina = 1.3;
+  var x = Math.max(.2, Math.min(19.8 - sirina, t.x - sirina/2));
+  var y = Math.max(.2, t.y - 3.4);
+  var r = document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute("x",x); r.setAttribute("y",y);
+  r.setAttribute("width",sirina); r.setAttribute("height",visina); r.setAttribute("rx",.5);
+  // rep proti igralki
+  var sx = Math.max(x + .6, Math.min(x + sirina - .6, t.x));
+  var rep = document.createElementNS("http://www.w3.org/2000/svg","path");
+  rep.setAttribute("d","M" + (sx - .45) + "," + (y + visina - .05) +
+                   " L" + (sx + .45) + "," + (y + visina - .05) +
+                   " L" + t.x + "," + (t.y - 1.45) + " Z");
+  rep.setAttribute("fill","var(--crta)");
+  rep.setAttribute("stroke","#06152b"); rep.setAttribute("stroke-width",".06");
+  var tx = document.createElementNS("http://www.w3.org/2000/svg","text");
+  tx.setAttribute("x", x + sirina/2); tx.setAttribute("y", y + visina/2);
+  tx.textContent = besedilo;
+  g.appendChild(rep); g.appendChild(r); g.appendChild(tx);
+  gOblacek.appendChild(g);
+  setTimeout(function(){ g.classList.add("vidno"); }, zamik);
+  setTimeout(function(){ g.classList.remove("vidno"); }, zamik + trajanje);
+}
+
+function pokrivaPivota(i){
+  var p = P(i);
+  // pivota pokriva osrednja branilka (mesto 4), razen kadar je šla v prostor
+  if(Math.hypot(p.O4.x - p.PIV.x, p.O4.y - p.PIV.y) <= 2.5) return "O4";
+  var naj = null, najd = 1e9;
+  OBRAMBA.forEach(function(o){
+    if(o === "O4") return;
+    var d = Math.hypot(p[o].x - p.PIV.x, p[o].y - p.PIV.y);
+    if(d < najd){ najd = d; naj = o; }
+  });
+  return naj;
+}
+function klici(i){
+  var zdaj = pokrivaPivota(i), vrsta = [];
+  var kdo = function(tarca){ return ime(DISKI[OBRAMBA.indexOf(tarca)]); };
+  // kdo pokliče: tista, ki pivota predaja; če predaje ni, vodja obrambe (mesto 4)
+  var p = prejsnja(i);
+  var klicalec = (p !== null && pokrivaPivota(p) !== zdaj) ? pokrivaPivota(p) : "O4";
+  if(klicalec !== zdaj) vrsta.push({tarca:klicalec, tekst: kdo(zdaj) + ", pivot!"});
+  vrsta.push({tarca:zdaj, tekst: "Moj pivot!"});
+  return vrsta;
+}
+function pokaziKlice(i){
+  gOblacek.textContent = "";
+  klici(i).forEach(function(k, n){
+    oblacek(P(i)[k.tarca], k.tekst, 400 + n*1900, 1700);
+  });
+}
+
+/* ============ Rok in Olga ============ */
+
+function glava(kdo){
+  var koza = "#f0bf86", senca = "#d9a469", oko = "#2f7fd0";
+  var olga = kdo === "Olga";
+
+  var lasje = olga
+    ? '<path d="M12 44 C9 16 20 5 32 5 C44 5 55 16 52 44 C52 47 47 47 47 44 L47 24 C40 30 24 30 17 24 L17 44 C17 47 12 47 12 44 Z" fill="#edd07f"/>'
+      + '<path d="M16 26 C19 12 45 12 48 26 C44 19 38 16 32 16 C26 16 20 19 16 26 Z" fill="#f7e2a0"/>'
+    : '<path d="M17 27 C17 17 24 12 32 12 C40 12 47 17 47 27 C45 21 39 18 32 18 C25 18 19 21 17 27 Z" fill="' + senca + '" opacity=".4"/>';
+
+  var brada = olga ? "" :
+    '<path d="M17 33 C17 40 18 46 21 49.5 C24 52.5 28 54 32 54 C36 54 40 52.5 43 49.5 '
+    + 'C46 46 47 40 47 33 C46 39 44 42.5 41 43.5 C38 41.5 35 41 32 41 C29 41 26 41.5 23 43.5 '
+    + 'C20 42.5 18 39 17 33 Z" fill="#23262e" opacity=".85"/>';
+
+  var obrvi = olga ? "#c9a85c" : "#20232b";
+  var usta = olga ? "#8a4a3d" : "#c07a63";
+  var ustaY = olga ? 44 : 46.5;
+
+  return '<svg class="glava" viewBox="0 0 64 64" aria-hidden="true">'
+    + '<circle cx="32" cy="32" r="31" fill="#16345c"/>'
+    + '<ellipse cx="15" cy="35" rx="3.6" ry="4.2" fill="' + koza + '"/>'
+    + '<ellipse cx="49" cy="35" rx="3.6" ry="4.2" fill="' + koza + '"/>'
+    + '<ellipse cx="32" cy="33" rx="16.5" ry="20" fill="' + koza + '"/>'
+    + brada + lasje
+    + '<ellipse cx="25" cy="32" rx="3.4" ry="3.8" fill="#fff"/>'
+    + '<ellipse cx="39" cy="32" rx="3.4" ry="3.8" fill="#fff"/>'
+    + '<circle cx="25.4" cy="32.4" r="2.2" fill="' + oko + '"/>'
+    + '<circle cx="39.4" cy="32.4" r="2.2" fill="' + oko + '"/>'
+    + '<circle cx="25.4" cy="32.4" r=".95" fill="#10131a"/>'
+    + '<circle cx="39.4" cy="32.4" r=".95" fill="#10131a"/>'
+    + '<circle cx="24.3" cy="31.2" r=".75" fill="#fff"/>'
+    + '<circle cx="38.3" cy="31.2" r=".75" fill="#fff"/>'
+    + '<path d="M21 26.5 C23 24.6 27.5 24.6 29.5 26.2" stroke="' + obrvi + '" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+    + '<path d="M34.5 26.2 C36.5 24.6 41 24.6 43 26.5" stroke="' + obrvi + '" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+    + '<path d="M32 34 L32 38.5 C32 39.4 31 39.8 30.3 39.4" stroke="' + senca + '" stroke-width="1.5" fill="none" stroke-linecap="round"/>'
+    + '<path d="M26.5 ' + ustaY + ' C29 ' + (ustaY+2.5) + ' 35 ' + (ustaY+2.5) + ' 37.5 ' + ustaY + '" stroke="' + usta + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
+var zadnjiGovorec = null;
+function govorec(i){
+  if(i === 0) return "Rok";
+  if(i === 1) return "Olga";
+  var izbira = Math.random() < .5 ? "Rok" : "Olga";
+  if(izbira === zadnjiGovorec) izbira = izbira === "Rok" ? "Olga" : "Rok";
+  return izbira;
+}
+function razlaga(kdo, besedilo){
+  zadnjiGovorec = kdo;
+  elRazlaga.classList.remove("skrit");
+  elRazlaga.innerHTML = glava(kdo) +
+    '<div class="mehur"><span class="kdo"></span><span class="tekst"></span></div>';
+  elRazlaga.querySelector(".kdo").textContent = kdo;
+  elRazlaga.querySelector(".tekst").textContent = besedilo;
+}
+function skrijRazlago(){ elRazlaga.classList.add("skrit"); elRazlaga.textContent = ""; }
+
+/* ============ animacija ============ */
+
+function animiraj(cas, korak, konec){
+  vAnimaciji = true;
+  var t0 = null;
+  function k(t){
+    if(!t0) t0 = t;
+    var d = Math.min(1,(t-t0)/cas);
+    korak(d < .5 ? 2*d*d : 1-Math.pow(-2*d+2,2)/2);
+    if(d < 1) requestAnimationFrame(k);
+    else { vAnimaciji = false; if(konec) konec(); }
+  }
+  requestAnimationFrame(k);
+}
+function premakni(el, od, na, cas, konec){
+  animiraj(cas, function(e){
+    if(el) el.setAttribute("transform","translate("+(od.x+(na.x-od.x)*e)+","+(od.y+(na.y-od.y)*e)+")"
+      + (el.dataset.id === "ZOGA" ? "" : " scale("+MERILO+")"));
+  }, konec);
+}
+
+/* ============ TEORIJA ============ */
+
+var slajdi = [];
+function zacniTeorijo(){
+  nacin = "teorija"; slajdi = skupinaA(); slajdIdx = 0; faza = slajdi[0];
+  osveziIzid();
+  prikaziSlajd();
+}
+
+function prikaziSlajd(){
+  var f = PODATKI.faze[faza];
+  document.getElementById("naslov").textContent = "Teorija " + (slajdIdx+1) + " / " + slajdi.length;
+  document.getElementById("navodilo").textContent = f.ime;
+  razlaga(govorec(slajdIdx), f.zakaj);
+  elLevo.textContent = "Nazaj"; elLevo.disabled = slajdIdx === 0;
+  elDesno.textContent = slajdIdx < slajdi.length-1 ? "Naprej" : "Na igro";
+  document.getElementById("stanje").textContent = besediloIger();
+  osveziPike(slajdIdx, slajdi.length);
+
+  delo = {};
+  var pr = prejsnja(faza);
+  var odFaza = pr === null ? faza : pr;
+  DISKI.forEach(function(k,i){ delo[k] = {x:P(odFaza)[OBRAMBA[i]].x, y:P(odFaza)[OBRAMBA[i]].y}; });
+  narisi();
+  sledi(odFaza, faza);
+  gOblacek.textContent = "";
+
+  if(pr === null){ pokaziKlice(faza); return; }
+
+  var elZ = gDiski.querySelector('[data-id="ZOGA"]');
+  premakni(elZ, P(pr).ZOGA, P(faza).ZOGA, 700, function(){
+    var elji = DISKI.map(function(k){ return gDiski.querySelector('[data-id="'+k+'"]'); });
+    var od = DISKI.map(function(k,i){ return P(pr)[OBRAMBA[i]]; });
+    var na = DISKI.map(function(k,i){ return P(faza)[OBRAMBA[i]]; });
+    animiraj(800, function(e){
+      elji.forEach(function(el,i){
+        if(el) el.setAttribute("transform","translate("+(od[i].x+(na[i].x-od[i].x)*e)+","+(od[i].y+(na[i].y-od[i].y)*e)+") scale("+MERILO+")");
+      });
+    }, function(){
+      DISKI.forEach(function(k,i){ delo[k] = {x:na[i].x, y:na[i].y}; });
+      pokaziKlice(faza);
+    });
+  });
+}
+
+var VPRASANJA = [
+  {v:"Zakaj se ob prevzemu pivota zaderemo \u201eMoj pivot!\u201c?",
+   o:["Da soigralke vedo, kdo ga pokriva, in pivot ne ostane sam.",
+      "Da napadalko zmedemo.",
+      "Da sodnik vidi, da smo pozorne."], p:0},
+  {v:"Zakaj mora krilo stati višje, ko je žoga na nasprotni strani?",
+   o:["Da pokrije zunanjo igralko in obenem prepreči podajo proti krilu.",
+      "Da hitreje steče v protinapad.",
+      "Da je bližje svoji vratarki."], p:0},
+  {v:"Zakaj mora biti obramba agresivna na igralki, ki ima žogo?",
+   o:["Da naredi prekršek, ji prepreči strel, prodor in podajo.",
+      "Da jo utrudi.",
+      "Da si sami odpočijemo."], p:0},
+  {v:"Kje mora biti osrednja branilka glede na pivota in žogo?",
+   o:["Med pivotom in žogo.",
+      "Za pivotovim hrbtom.",
+      "Ob 9-metrski črti."], p:0},
+  {v:"Zakaj ne poskušamo krasti žoge, ko jo ima srednja napadalka?",
+   o:["Če nam spodleti, je obramba odprta.",
+      "Ker je to prekršek.",
+      "Ker se takrat ne smemo premikati."], p:0},
+  {v:"Kaj naredi branilka takoj po tem, ko njena napadalka poda žogo naprej?",
+   o:["Umakne se diagonalno nazaj in je pripravljena pomagati sosedi.",
+      "Ostane, kjer je.",
+      "Steče za žogo."], p:0},
+  {v:"Zakaj se v obrambi ne smemo pustiti zvabiti predaleč ven?",
+   o:["Ker se ne moremo vrniti pravočasno in za nami nastane prostor.",
+      "Ker se hitreje utrudimo.",
+      "Ker napadalka to pričakuje."], p:0},
+  {v:"Kdo vodi obrambo?",
+   o:["Osrednja branilka na 6-metrski črti.",
+      "Špica.",
+      "Krilo na strani žoge."], p:0},
+  {v:"Kje držimo roke v obrambni preži?",
+   o:["V višini ramen.",
+      "Ob telesu.",
+      "Nad glavo."], p:0},
+  {v:"Zakaj se celotna obramba premika z žogo?",
+   o:["Da ostane strnjena, brez lukenj, in zgosti prostor tam, kjer je žoga in nevarnost za gol.",
+      "Da napadalke vidijo, da smo pripravljene.",
+      "Da si izmenjamo naloge."], p:0}
+];
+
+/* ============ IGRA ============ */
+
+function zacniIgro(){
+  if(preostaleIgre() <= 0){
+    kartica("Za danes je dovolj",
+      "Tri igre na dan so porabljene. Nova igra bo na voljo čez " + doNaslednje() + ".\n\nTeorijo lahko gledaš, kolikor hočeš.",
+      [{t:"Nazaj na teorijo", glavni:true, f:function(){ zapri(); zacniTeorijo(); }}]);
+    return;
+  }
+  porabiIgro();
+  nacin = "igra";
+  golNapad = 0; golObramba = 0; krog = 0;
+  var vse = [];
+  PODATKI.faze.forEach(function(f, i){ if(prejsnja(i) !== null) vse.push(i); });
+  krogi = vse.sort(function(){ return Math.random() - .5; }).slice(0,5);
+  skrijRazlago();
+  novKrog();
+}
+
+function novKrog(){
+  faza = krogi[krog];
+  oddano = false; ocena = {};
+  gOblacek.textContent = ""; gSledi.textContent = "";
+  document.getElementById("naslov").textContent = "Napad " + (krog+1) + " / " + krogi.length + " · " + PODATKI.faze[faza].ime;
+  document.getElementById("navodilo").textContent = "Postavi obrambo, potem sproži napad.";
+  document.getElementById("stanje").textContent = "";
+  elLevo.textContent = "Ponastavi"; elLevo.disabled = false;
+  elDesno.textContent = "Napad!";
+  osveziPike(krog, krogi.length); osveziIzid();
+  ponastaviPostavitev();
+}
+
+function ponastaviPostavitev(){
+  delo = {};
+  var pr = prejsnja(faza);
+  DISKI.forEach(function(k,i){
+    var t = P(pr)[OBRAMBA[i]];
+    delo[k] = {x:t.x, y:t.y};
+  });
+  oddano = false; ocena = {};
+  narisi();
+}
+
+// najboljše ujemanje dresov in mest (6! = 720 možnosti)
+function ujemanje(){
+  var naj = null, najVsota = 1e9;
+  function rek(preostali, izbor, vsota){
+    if(vsota >= najVsota) return;
+    if(!preostali.length){ najVsota = vsota; naj = izbor.slice(); return; }
+    for(var i = 0; i < preostali.length; i++){
+      var o = preostali[i];
+      var k = DISKI[izbor.length];
+      var d = Math.hypot(delo[k].x - P(faza)[o].x, delo[k].y - P(faza)[o].y);
+      var ostanek = preostali.slice(); ostanek.splice(i,1);
+      izbor.push({disk:k, tarca:o, d:d});
+      rek(ostanek, izbor, vsota + d);
+      izbor.pop();
+    }
+  }
+  rek(OBRAMBA.slice(), [], 0);
+  return naj;
+}
+
+function napad(){
+  if(vAnimaciji) return;
+  var par = ujemanje();
+  ocena = {};
+  var napake = [];
+  par.forEach(function(p){
+    ocena[p.disk] = p.d <= tol();
+    if(p.d > tol()) napake.push(p);
+  });
+  oddano = true;
+  elDesno.disabled = true; elLevo.disabled = true;
+  narisi();
+
+  if(!napake.length){
+    golObramba++;
+    zvokPrav(); trese(40);
+    document.getElementById("navodilo").textContent = "Obramba stoji. Napad nima kam.";
+    blok(function(){ konecKroga("Obramba!", "Vsaka je na svojem mestu, prostora za podajo ni."); });
+  }else{
+    napake.sort(function(a,b){ return b.d - a.d; });
+    var luknja = napake[0].tarca;
+    golNapad++;
+    var prosta = prostaNapadalka(luknja);
+    document.getElementById("navodilo").textContent =
+      ime(napake[0].disk) + " ni pokrila številke " + STEVILKE[prosta] + ".";
+    gol(luknja, function(){
+      konecKroga("Gol za napad",
+        ime(napake[0].disk) + " ni bila na svojem mestu, zato je bila številka " + STEVILKE[prosta] +
+        " prosta. Žoga je šla do nje in skozi to vrzel v gol.");
+    });
+  }
+  osveziIzid();
+}
+
+function prostaNapadalka(tarca){
+  var p = P(faza), naj = null, najd = 1e9;
+  NAPAD.forEach(function(a){
+    var d = Math.hypot(p[tarca].x - p[a].x, p[tarca].y - p[a].y);
+    if(d < najd){ najd = d; naj = a; }
+  });
+  return naj;
+}
+
+// pot strela: iz napadalke skozi luknjo do vrat
+function streloVrata(a, luknja){
+  var dx = luknja.x - a.x, dy = luknja.y - a.y;
+  if(dy >= -0.2){
+    // luknja ni med napadalko in vrati: skoznjo je šla podaja, strel gre v bližji kot
+    return {x: Math.max(8.7, Math.min(11.3, 10 + (a.x - 10) * .3)), y: VRATA.y};
+  }
+  var t = (VRATA.y - a.y) / dy;
+  if(t < 1) t = 1.6;                                     // vedno gremo skozi luknjo in naprej
+  var x = a.x + dx * t;
+  return {x: Math.max(8.7, Math.min(11.3, x)), y: VRATA.y};
+}
+
+function oznaciLuknjo(t){
+  var c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx", t.x); c.setAttribute("cy", t.y);
+  c.setAttribute("r", tol());
+  c.setAttribute("fill","none");
+  c.setAttribute("stroke","var(--narobe)");
+  c.setAttribute("stroke-width",".16");
+  c.setAttribute("stroke-dasharray",".4 .3");
+  gSledi.appendChild(c);
+}
+
+function gol(tarca, konec){
+  var elZ = gDiski.querySelector('[data-id="ZOGA"]');
+  var p = P(faza);
+  var a = prostaNapadalka(tarca);
+  var luknja = p[tarca];
+  gSledi.textContent = "";
+  oznaciLuknjo(luknja);
+  puscica(p.ZOGA, p[a], "var(--zoga)", "konicaZoga", true, .18, .7);
+  // podaja prosti napadalki
+  premakni(elZ, p.ZOGA, p[a], 500, function(){
+    var cilj = streloVrata(p[a], luknja);
+    puscica(p[a], cilj, "var(--narobe)", "konicaGol", false, .18, .7);
+    setTimeout(function(){
+      svg.classList.add("stresi");
+      setTimeout(function(){ svg.classList.remove("stresi"); }, 420);
+      zvokGol(); trese([60,50,60]);
+      // strel skozi luknjo v gol
+      premakni(elZ, p[a], cilj, 520, function(){ setTimeout(konec, 550); });
+    }, 260);
+  });
+}
+
+function blok(konec){
+  var elZ = gDiski.querySelector('[data-id="ZOGA"]');
+  var p = P(faza);
+  gSledi.textContent = "";
+  var cilj = {x:(p.PIV.x + p.ZOGA.x)/2, y:(p.PIV.y + p.ZOGA.y)/2};
+  premakni(elZ, p.ZOGA, cilj, 380, function(){
+    premakni(elZ, cilj, p.ZOGA, 380, function(){ setTimeout(konec, 400); });
+  });
+}
+
+function konecKroga(naslov, besedilo){
+  elDesno.disabled = false; elLevo.disabled = false;
+  kartica(naslov + "   ·   Napad " + golNapad + " : " + golObramba + " Obramba",
+    besedilo + "\n\n" + PODATKI.faze[faza].zakaj, [
+    {t: krog < krogi.length-1 ? "Naslednji napad" : "Rezultat", glavni:true, f:function(){
+      zapri();
+      if(krog < krogi.length-1){ krog++; novKrog(); } else zacniKviz();
+    }}
+  ]);
+}
+
+function konecTekme(){
+  zvokKonec();
+  kartica(golObramba > golNapad ? "Obramba je zmagala" : (golObramba === golNapad ? "Neodločeno" : "Napad je zmagal"),
+    "Napad " + golNapad + " : " + golObramba + " Obramba" +
+    "\n\n" + besediloIger(),
+    [{t: preostaleIgre() > 0 ? "Še enkrat" : "Ni več iger danes", glavni:true, f:function(){ zapri(); zacniIgro(); }},
+     {t:"Nazaj na teorijo", f:function(){ zapri(); zacniTeorijo(); }},
+     {t:"Druga ekipa", f:function(){ zapri(); ekipa = []; osveziSeznam(); elIzbor.classList.add("vidno"); }}],
+    golNapad + " : " + golObramba);
+}
+
+/* ============ kviz ============ */
+
+var kvizSet = [], kvizIdx = 0;
+
+function zacniKviz(){
+  kvizSet = VPRASANJA.slice().sort(function(){ return Math.random() - .5; }).slice(0,3);
+  kvizIdx = 0;
+  document.getElementById("naslov").textContent = "Vprašanja";
+  document.getElementById("navodilo").textContent = "Tri vprašanja za konec.";
+  skrijRazlago();
+  vprasanje();
+}
+
+function vprasanje(){
+  var q = kvizSet[kvizIdx];
+  var vrstni = q.o.map(function(t, i){ return {t:t, prav: i === q.p}; })
+                  .sort(function(){ return Math.random() - .5; });
+  kartica("Vprašanje " + (kvizIdx+1) + " / 3", q.v,
+    vrstni.map(function(m){
+      return {t:m.t, f:function(){ odgovor(m.prav, q); }};
+    }), undefined, true);
+}
+
+function odgovor(prav, q){
+  if(prav){ golObramba++; zvokPrav(); trese(30); }
+  else { golNapad++; zvokGol(); trese([50,60,50]); }
+  osveziIzid();
+  kartica(prav ? "Pravilno" : "Ni pravilno",
+    prav ? "Točka za obrambo." : "Pravilen odgovor: " + q.o[q.p],
+    [{t: kvizIdx < 2 ? "Naprej" : "Rezultat", glavni:true, f:function(){
+      zapri();
+      if(kvizIdx < 2){ kvizIdx++; vprasanje(); } else konecTekme();
+    }}]);
+}
+
+/* ============ vlečenje ============ */
+
+function vTocko(e){
+  var m = svg.getScreenCTM().inverse();
+  var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+  return p.matrixTransform(m);
+}
+svg.addEventListener("pointerdown", function(e){
+  if(vAnimaciji || nacin !== "igra" || oddano) return;
+  var g = e.target.closest(".dres.premicen");
+  if(!g) return;
+  vlecem = g.dataset.id;
+  g.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+svg.addEventListener("pointermove", function(e){
+  if(!vlecem) return;
+  var t = vTocko(e);
+  delo[vlecem] = {x: Math.max(.6, Math.min(19.4, t.x)), y: Math.max(.6, Math.min(13.6, t.y))};
+  narisi();
+});
+function spusti(){ vlecem = null; }
+svg.addEventListener("pointerup", spusti);
+svg.addEventListener("pointercancel", spusti);
+
+/* ============ gumbi in vrh ============ */
+
+elLevo.addEventListener("click", function(){
+  if(vAnimaciji) return;
+  if(nacin === "teorija"){ if(slajdIdx > 0){ slajdIdx--; faza = slajdi[slajdIdx]; prikaziSlajd(); } }
+  else ponastaviPostavitev();
+});
+elDesno.addEventListener("click", function(){
+  if(vAnimaciji) return;
+  if(nacin === "teorija"){
+    if(slajdIdx < slajdi.length-1){ slajdIdx++; faza = slajdi[slajdIdx]; prikaziSlajd(); }
+    else kartica("Konec teorije", "Zdaj pride napad. Postaviš obrambo, potem sprožiš napad in vidiš, kaj se zgodi.",
+      [{t:"Začni igro", glavni:true, f:function(){ zapri(); zacniIgro(); }}]);
+  }else napad();
+});
+
+function osveziPike(n, skupaj){
+  var pike = document.getElementById("pike");
+  pike.textContent = "";
+  for(var i = 0; i < skupaj; i++){
+    var s = document.createElement("span");
+    s.className = i < n ? "done" : (i === n ? "now" : "");
+    pike.appendChild(s);
+  }
+}
+function osveziIzid(){
+  document.getElementById("izid").innerHTML =
+    "Napad <b>" + golNapad + "</b> : <i>" + golObramba + "</i> Obramba";
+}
+
+/* ============ kartica ============ */
+
+var zaslon = document.getElementById("zaslon");
+function kartica(naslov, besedilo, gumbi, velika, stolpec){
+  document.getElementById("kNaslov").textContent = naslov;
+  document.getElementById("kBesedilo").textContent = besedilo;
+  var v = document.getElementById("kVelika");
+  if(velika === undefined){ v.hidden = true; } else { v.hidden = false; v.textContent = velika; }
+  var g = document.getElementById("kGumbi");
+  g.className = "gumbi" + (stolpec ? " stolpec" : "");
+  g.textContent = "";
+  gumbi.forEach(function(b){
+    var el = document.createElement("button");
+    el.className = "g" + (b.glavni ? " glavni" : "");
+    el.textContent = b.t;
+    el.addEventListener("click", b.f);
+    g.appendChild(el);
+  });
+  zaslon.classList.add("vidno");
+}
+function zapri(){ zaslon.classList.remove("vidno"); }
+
+/* ============ namestitev na zaslon ============ */
+
+if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+
+var pozivNamestitve = null;
+var elNamesti = document.getElementById("namesti");
+var elNamestiTekst = document.getElementById("namestiTekst");
+var elNamestiGumb = document.getElementById("namestiGumb");
+
+function zeNamescena(){
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+function jeIPhone(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault();
+  pozivNamestitve = e;
+  if(zeNamescena()) return;
+  elNamestiTekst.textContent = "Dodaj igro na domači zaslon telefona.";
+  elNamestiGumb.style.display = "";
+  elNamesti.classList.add("vidno");
+});
+
+elNamestiGumb.addEventListener("click", function(){
+  if(!pozivNamestitve) return;
+  pozivNamestitve.prompt();
+  pozivNamestitve.userChoice.then(function(){
+    pozivNamestitve = null;
+    elNamesti.classList.remove("vidno");
+  });
+});
+
+window.addEventListener("appinstalled", function(){
+  elNamesti.classList.remove("vidno");
+});
+
+if(jeIPhone() && !zeNamescena()){
+  elNamestiTekst.textContent = "Za ikono na zaslonu: tapni Deli spodaj, nato Na začetni zaslon.";
+  elNamestiGumb.style.display = "none";
+  elNamesti.classList.add("vidno");
+}
+
+/* ============ zagon ============ */
+
+narisiSeznam();
+elIzbor.classList.add("vidno");
+
+})();
+</script>
+</body>
+</html>
